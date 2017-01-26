@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<body>
+<form action="/login" method="post" id="login" hidden>
+    <input type="text" placeholder="Username" name="username"/>
+    <input type="password" placeholder="Password" name="password"/>
+    <button type="submit">Login</button>
+</form>
+
+<form action="/logout" method="post" id="logout" hidden>
+    <button type="submit">Logout</button>
+</form>
+
+<form action="/upload" method="post" enctype="multipart/form-data" id="upload" hidden>
+    <input type="text" placeholder="Receiver name" name="receiver"/>
+    <input type="file" name="photo"/>
+    <button type="submit">Upload</button>
+</form>
+
+<div id="photos"></div>
+
+
+<script src="jquery-3.1.1.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
