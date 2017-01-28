@@ -18,6 +18,8 @@ public class Photo {
     @Column(nullable = false)
     String filename;
 
+    //add a column for add how many seconds they want the photo to exist
+
     public Photo() {
     }
 

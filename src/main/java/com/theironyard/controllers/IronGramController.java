@@ -7,20 +7,26 @@ import com.theironyard.services.UserRepository;
 import com.theironyard.utilities.PasswordStorage;
 import org.h2.tools.Server;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
 
 @RestController
 public class IronGramController {
@@ -31,6 +37,10 @@ public class IronGramController {
     PhotoRepository photos;
 
     Server dbui = null;
+
+    File photoFile;
+    FileOutputStream fos;
+
 
     @PostConstruct
     public void init() throws SQLException {
@@ -106,20 +116,55 @@ public class IronGramController {
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
         photos.save(p);
+        photoFile.delete();
 
         response.sendRedirect("/");
 
         return p;
+
+
     }
 
     @RequestMapping("/photos")
-    public List<Photo> showPhotos(HttpSession session) throws Exception {
-        String username = (String) session.getAttribute("username");
-        if (username == null) {
+    public List<Photo> showPhotos(HttpSession session) throws Exception {// session is passed as parameter
+        int counter = 10;
+        String username = (String) session.getAttribute("username"); // save the user name from the session
+        if (username == null) {// if no username then throw exception
             throw new Exception("Not logged in.");
         }
 
-        User user = users.findFirstByName(username);
+        /*Thread a = new Thread();
+        a.start();
+
+        Timer timer = new Timer();
+*/
+
+
+        //ScheduledFuture<?> schedule ();
+       // ScheduledExecutorService executor =
+        // spining up a new thread and executing after a certain drive
+        // photos.deleteAll();
+        //after existing for at least 10
+        //time elapse
+        //spring task scheduler
+        //photos.deleteAll();
+
+        //Delete photos from the database and the disk if they were viewed by the /photos route.
+
+
+        // have an if statement that deletes the photo after the time specified by the sender
+
+        User user = users.findFirstByName(username); // search users repo for current sessions
+
+        //timer.wait(20);
+
+
         return photos.findByRecipient(user);
+
+
     }
+
+
+
+
 }
