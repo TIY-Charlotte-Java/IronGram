@@ -16,17 +16,12 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
 
 @RestController
 public class IronGramController {
@@ -116,7 +111,8 @@ public class IronGramController {
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
         photos.save(p);
-        photoFile.delete();
+        //fos.close();
+        //photos.deleteAll();
 
         response.sendRedirect("/");
 
@@ -125,46 +121,45 @@ public class IronGramController {
 
     }
 
+    //@Scheduled(fixedRate=1000)
     @RequestMapping("/photos")
+    //List<Photo>
     public List<Photo> showPhotos(HttpSession session) throws Exception {// session is passed as parameter
         int counter = 10;
         String username = (String) session.getAttribute("username"); // save the user name from the session
         if (username == null) {// if no username then throw exception
             throw new Exception("Not logged in.");
         }
+        User user = users.findFirstByName(username);
+        List<Photo> photo = photos.findByRecipient(user);
 
-        /*Thread a = new Thread();
-        a.start();
+        new Thread(() -> {
+            while(true){
+                Photo p = new Photo();
+                p.setRecipient(p.getSender());
+                try {
+                    //User user = users.findFirstByName(username);
+                    Thread.sleep(1000);
+                    photos.delete(photo);
+                    return;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
-        Timer timer = new Timer();
-*/
+            }
 
-
-        //ScheduledFuture<?> schedule ();
-       // ScheduledExecutorService executor =
-        // spining up a new thread and executing after a certain drive
-        // photos.deleteAll();
-        //after existing for at least 10
-        //time elapse
-        //spring task scheduler
-        //photos.deleteAll();
-
-        //Delete photos from the database and the disk if they were viewed by the /photos route.
-
-
-        // have an if statement that deletes the photo after the time specified by the sender
-
-        User user = users.findFirstByName(username); // search users repo for current sessions
-
-        //timer.wait(20);
+        }).start();
 
 
-        return photos.findByRecipient(user);
+        long givenTime = session.getLastAccessedTime();
+        //System.out.println(givenTime);
+       // photos.deleteAll();
+
+
+        return photo;
 
 
     }
-
-
 
 
 }
