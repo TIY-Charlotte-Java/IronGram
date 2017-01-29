@@ -16,11 +16,11 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.sql.SQLException;
+import java.util.Calendar;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 public class IronGramController {
@@ -78,7 +78,8 @@ public class IronGramController {
             HttpSession session,
             HttpServletResponse response,
             String receiver,
-            MultipartFile photo
+            MultipartFile photo,
+            int time
     ) throws Exception {
         String username = (String) session.getAttribute("username");
 
@@ -98,13 +99,17 @@ public class IronGramController {
         }
 
         File photoFile = File.createTempFile("photo", photo.getOriginalFilename(), new File("build/resources/main/static"));
+        //.createTempFile -> prefixes file name with "photo" + original file name + random string of integers
+        //gives us a unique file name
         FileOutputStream fos = new FileOutputStream(photoFile);
         fos.write(photo.getBytes());
+        photoFile.deleteOnExit();//deletes file once program stops running
 
         Photo p = new Photo();
         p.setSender(senderUser);
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
+        p.setTime(time);
         photos.save(p);
 
         response.sendRedirect("/");
@@ -113,13 +118,30 @@ public class IronGramController {
     }
 
     @RequestMapping("/photos")
-    public List<Photo> showPhotos(HttpSession session) throws Exception {
-        String username = (String) session.getAttribute("username");
-        if (username == null) {
+    public List<Photo> showPhotos(HttpSession session) throws Exception {//Session is passed as param
+        String username = (String) session.getAttribute("username");//saves the username from session
+        if (username == null) {//throws exception if no username is found
             throw new Exception("Not logged in.");
         }
-
+        //sending up new thread and executing after a certain amount of time
+        //before starting a new thread, you have to specify the code to be executed by this thread (by implementing Runnable)
         User user = users.findFirstByName(username);
+            List <Photo> userPhotos = photos.findByRecipient(user)//finds photos
+            .stream().collect(Collectors.toList());//stores all those photos in a List
+        if (userPhotos != null) {
+            Photo photo = photos.findFirstPhotoByRecipient(user);
+            final int seconds = photo.getTime() * 1000;//time is set to milliseconds by default.
+            // Multiplying by 1000 so that thread sleeps for that number of seconds
+            new Thread(() -> {
+                try {
+
+                    Thread.sleep(seconds);
+                    photos.delete(userPhotos);//deletes everything stored for that user in photos repository
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
         return photos.findByRecipient(user);
     }
 }

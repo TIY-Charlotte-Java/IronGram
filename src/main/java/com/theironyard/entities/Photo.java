@@ -1,6 +1,8 @@
 package com.theironyard.entities;
 
 import javax.persistence.*;
+import java.time.temporal.*;
+import java.util.Calendar;
 
 @Entity
 @Table(name = "photos")
@@ -18,13 +20,25 @@ public class Photo {
     @Column(nullable = false)
     String filename;
 
+    @Column
+    int time;
+
     public Photo() {
     }
 
-    public Photo(User sender, User recipient, String filename) {
+    public Photo(User sender, User recipient, String filename, int time) {
         this.sender = sender;
         this.recipient = recipient;
         this.filename = filename;
+        this.time = time;
+    }
+
+    public int getTime() {
+        return time;
+    }
+
+    public void setTime(int time) {
+        this.time = time;
     }
 
     public int getId() {
