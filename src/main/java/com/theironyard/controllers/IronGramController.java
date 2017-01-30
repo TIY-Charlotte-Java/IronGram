@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.servlet.http.HttpServletResponse;
@@ -48,9 +49,7 @@ public class IronGramController {
         if (user == null) {
             user = new User(username, PasswordStorage.createHash(password));
             users.save(user);
-        }
-
-        else if (!PasswordStorage.verifyPassword(password, user.getPassword())) {
+        } else if (!PasswordStorage.verifyPassword(password, user.getPassword())) {
             throw new Exception("Wrong password");
         }
 
@@ -130,7 +129,7 @@ public class IronGramController {
         int seconds = newphoto.getTimer() * millSec; // convert users time into milliseconds
 
         new Thread(() -> { // creates a thread
-            while(true){
+            while (true) {
                 try {
                     Thread.sleep(seconds); // sleeps the thread after a given time
                     photos.delete(photo); // deletes the photo from the file
@@ -140,11 +139,6 @@ public class IronGramController {
                 }
             }
         }).start();
-
         return photo;
-
-
     }
-
-
 }
