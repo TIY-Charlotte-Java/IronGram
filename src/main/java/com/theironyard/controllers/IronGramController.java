@@ -18,8 +18,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.*;
 import java.sql.SQLException;
-import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -124,19 +124,16 @@ public class IronGramController {
             throw new Exception("Not logged in.");
         }
         //sending up new thread and executing after a certain amount of time
-        //before starting a new thread, you have to specify the code to be executed by this thread (by implementing Runnable)
-        User user = users.findFirstByName(username);
-            List <Photo> userPhotos = photos.findByRecipient(user)//finds photos
+        User user = users.findFirstByName(username);//finds user that is logged into current session
+            List <Photo> userPhotos = photos.findByRecipient(user)//finds photos for that user
             .stream().collect(Collectors.toList());//stores all those photos in a List
-        if (userPhotos != null) {
-            Photo photo = photos.findFirstPhotoByRecipient(user);
-            final int seconds = photo.getTime() * 1000;//time is set to milliseconds by default.
-            // Multiplying by 1000 so that thread sleeps for that number of seconds
+        if (userPhotos != null) {//if list is not empty, do this stuff
+            Photo photo = photos.findFirstPhotoByRecipient(user);//finds the first photo in receiver's list
+            final int seconds = photo.getTime();//finds the amount of time specified by the sender for that photo
             new Thread(() -> {
                 try {
-
-                    Thread.sleep(seconds);
-                    photos.delete(userPhotos);//deletes everything stored for that user in photos repository
+                    TimeUnit.SECONDS.sleep(seconds);//takes in time specified by sender and interprets that number as seconds
+                    photos.delete(userPhotos);//deletes everything stored for that user(receiver) in photos repository
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
