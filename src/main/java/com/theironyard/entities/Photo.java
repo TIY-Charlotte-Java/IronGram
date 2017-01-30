@@ -18,15 +18,19 @@ public class Photo {
     @Column(nullable = false)
     String filename;
 
-    //add a column for add how many seconds they want the photo to exist
+    @Column(nullable = false)
+    int timer;
+
+    //add a column for add how many timer they want the photo to exist
 
     public Photo() {
     }
 
-    public Photo(User sender, User recipient, String filename) {
+    public Photo(User sender, User recipient, String filename, int timer) {
         this.sender = sender;
         this.recipient = recipient;
         this.filename = filename;
+        this.timer = timer;
     }
 
     public int getId() {
@@ -59,5 +63,13 @@ public class Photo {
 
     public void setFilename(String filename) {
         this.filename = filename;
+    }
+
+    public int getTimer() {
+        return timer;
+    }
+
+    public void setTimer(int timer) {
+        this.timer = timer;
     }
 }

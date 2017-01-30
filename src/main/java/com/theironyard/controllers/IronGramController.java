@@ -7,7 +7,6 @@ import com.theironyard.services.UserRepository;
 import com.theironyard.utilities.PasswordStorage;
 import org.h2.tools.Server;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,7 +20,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Timer;
 
 @RestController
 public class IronGramController {
@@ -32,10 +30,6 @@ public class IronGramController {
     PhotoRepository photos;
 
     Server dbui = null;
-
-    File photoFile;
-    FileOutputStream fos;
-
 
     @PostConstruct
     public void init() throws SQLException {
@@ -82,16 +76,16 @@ public class IronGramController {
     public Photo upload(
             HttpSession session,
             HttpServletResponse response,
-            String receiver,
-            MultipartFile photo
+            String receiver, int seconds,
+            MultipartFile photo // parameters for uploading the pictures
     ) throws Exception {
         String username = (String) session.getAttribute("username");
 
-        if (username == null) {
+        if (username == null) { // user name is null then through that the person is not logged in
             throw new Exception("Not logged in.");
         }
 
-        User senderUser = users.findFirstByName(username);
+        User senderUser = users.findFirstByName(username); //sender is assigned by sql method
         User receiverUser = users.findFirstByName(receiver);
 
         if (receiverUser == null) {
@@ -106,55 +100,46 @@ public class IronGramController {
         FileOutputStream fos = new FileOutputStream(photoFile);
         fos.write(photo.getBytes());
 
+        //creates a new photo and sets the parameters
         Photo p = new Photo();
         p.setSender(senderUser);
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
+        p.setTimer(seconds);
         photos.save(p);
-        //fos.close();
-        //photos.deleteAll();
+        photoFile.deleteOnExit();//deleted when the virtual machine terminates
+
 
         response.sendRedirect("/");
 
         return p;
-
-
     }
 
-    //@Scheduled(fixedRate=1000)
+
     @RequestMapping("/photos")
-    //List<Photo>
     public List<Photo> showPhotos(HttpSession session) throws Exception {// session is passed as parameter
-        int counter = 10;
         String username = (String) session.getAttribute("username"); // save the user name from the session
         if (username == null) {// if no username then throw exception
             throw new Exception("Not logged in.");
         }
-        User user = users.findFirstByName(username);
-        List<Photo> photo = photos.findByRecipient(user);
+        User user = users.findFirstByName(username); // finds a user
+        List<Photo> photo = photos.findByRecipient(user); // finds a photo by the recipient
 
-        new Thread(() -> {
+        Photo newphoto = photos.findFirstPhotoByRecipient(user);
+        final int millSec = 1000; // assignment for milloseconds
+        int seconds = newphoto.getTimer() * millSec; // convert users time into milliseconds
+
+        new Thread(() -> { // creates a thread
             while(true){
-                Photo p = new Photo();
-                p.setRecipient(p.getSender());
                 try {
-                    //User user = users.findFirstByName(username);
-                    Thread.sleep(1000);
-                    photos.delete(photo);
+                    Thread.sleep(seconds); // sleeps the thread after a given time
+                    photos.delete(photo); // deletes the photo from the file
                     return;
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
             }
-
         }).start();
-
-
-        long givenTime = session.getLastAccessedTime();
-        //System.out.println(givenTime);
-       // photos.deleteAll();
-
 
         return photo;
 
