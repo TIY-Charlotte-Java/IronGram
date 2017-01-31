@@ -7,6 +7,8 @@ import com.theironyard.services.UserRepository;
 import com.theironyard.utilities.PasswordStorage;
 import org.h2.tools.Server;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,8 +24,13 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+
 @RestController
+@EnableScheduling
 public class IronGramController {
+
+
+
     @Autowired
     UserRepository users;
 
@@ -38,7 +45,7 @@ public class IronGramController {
     }
 
     @PreDestroy
-    public void destroy() {
+    public void destroy()  {
         dbui.stop();
     }
 
@@ -74,12 +81,12 @@ public class IronGramController {
 
 
     @RequestMapping("/upload")
-    public Photo upload(
-            HttpSession session,
-            HttpServletResponse response,
-            String receiver,
-            MultipartFile photo
-    ) throws Exception {
+    public Photo upload(HttpSession session,
+                        HttpServletResponse response,
+                        String receiver,
+                        MultipartFile photo,
+                        Integer countDown) throws Exception {
+
         String username = (String) session.getAttribute("username");
 
         if (username == null) {
@@ -105,21 +112,40 @@ public class IronGramController {
         p.setSender(senderUser);
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
+
+        if (countDown == null) {
+            p.setCountDown(10); // set countdown to 10
+        } else {
+            p.setCountDown(countDown); // set countdown to w/e the recipient wants
+        }
         photos.save(p);
+        photoFile.deleteOnExit();
 
         response.sendRedirect("/");
-
         return p;
     }
 
     @RequestMapping("/photos")
-    public List<Photo> showPhotos(HttpSession session) throws Exception {
-        String username = (String) session.getAttribute("username");
-        if (username == null) {
-            throw new Exception("Not logged in.");
+    public List<Photo> showPhotos(HttpSession session) throws Exception { // Session is passed as parameter
+        String username = (String) session.getAttribute("username"); // saves the username from session
+        if (username == null) { // if no username then throw Exception
+            throw new Exception("Not logged in."); // everything works but when the site boots up this exception is thrown until someone logs in...
         }
+        User user = users.findFirstByName(username); // returns user object:search users repo for current sessions username
+        List<Photo> photo = photos.findByRecipient(user); // returns photos by that user
 
-        User user = users.findFirstByName(username);
+        Photo removePhoto = photos.findPhotoByRecipient(user);
+        if (photo != null) {
+            new Thread(() -> {
+                try {
+                    Thread.sleep(removePhoto.getCountDown() * 1000); //is in milliseconds so we multiply by 1000
+                    photos.delete(photo);
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
+            }).start();
+
+        }
         return photos.findByRecipient(user);
     }
 }
