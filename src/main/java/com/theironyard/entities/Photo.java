@@ -1,6 +1,9 @@
 package com.theironyard.entities;
 
+import org.hibernate.annotations.ColumnDefault;
+
 import javax.persistence.*;
+
 
 @Entity
 @Table(name = "photos")
@@ -17,6 +20,10 @@ public class Photo {
 
     @Column(nullable = false)
     String filename;
+
+    @Column(nullable = false)
+    @ColumnDefault("10")
+    public Integer countDown;
 
     public Photo() {
     }
@@ -58,4 +65,13 @@ public class Photo {
     public void setFilename(String filename) {
         this.filename = filename;
     }
+
+    public Integer getCountDown() {
+        return countDown;
+    }
+
+    public void setCountDown(Integer countDown) {
+        this.countDown = countDown;
+    }
+
 }
