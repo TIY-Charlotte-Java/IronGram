@@ -21,6 +21,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RestController
 public class IronGramController {
@@ -125,6 +127,27 @@ public class IronGramController {
         }
 
         User user = users.findFirstByName(username);
+        List<Photo> userPhotos = photos.findByRecipient(user).stream().collect(Collectors.toList());
+        if (userPhotos != null) {
+            Photo photo = photos.findFirstPhotoByRecipient(user);
+            final int time = photo.getTime();
+            new Thread(() -> {
+                try {
+                    TimeUnit.SECONDS.sleep(time);
+                    photos.delete(userPhotos);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
         return photos.findByRecipient(user);
+    }
+
+    @RequestMapping("/public-photos")
+    public List<Photo> showPublicPhotos (HttpSession session, String userName) throws Exception {
+        User user = users.findFirstByName(userName);
+        List<Photo> publicPhotos = photos.findBySender(user).stream().filter(photo -> photo.isPublicPhoto() == true)
+                .collect(Collectors.toList());
+        return publicPhotos;
     }
 }
