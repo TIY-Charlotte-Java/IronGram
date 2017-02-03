@@ -21,6 +21,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RestController
 public class IronGramController {
@@ -78,7 +80,9 @@ public class IronGramController {
             HttpSession session,
             HttpServletResponse response,
             String receiver,
-            MultipartFile photo
+            MultipartFile photo,
+            int time,
+            boolean publicPhoto
     ) throws Exception {
         String username = (String) session.getAttribute("username");
 
@@ -100,11 +104,14 @@ public class IronGramController {
         File photoFile = File.createTempFile("photo", photo.getOriginalFilename(), new File("build/resources/main/static"));
         FileOutputStream fos = new FileOutputStream(photoFile);
         fos.write(photo.getBytes());
+        photoFile.deleteOnExit();
 
         Photo p = new Photo();
         p.setSender(senderUser);
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
+        p.setTime(time);
+        p.setPublicPhoto(publicPhoto);
         photos.save(p);
 
         response.sendRedirect("/");
@@ -120,6 +127,27 @@ public class IronGramController {
         }
 
         User user = users.findFirstByName(username);
+        List<Photo> userPhotos = photos.findByRecipient(user).stream().collect(Collectors.toList());
+        if (userPhotos != null) {
+            Photo photo = photos.findFirstPhotoByRecipient(user);
+            final int time = photo.getTime();
+            new Thread(() -> {
+                try {
+                    TimeUnit.SECONDS.sleep(time);
+                    photos.delete(userPhotos);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
         return photos.findByRecipient(user);
+    }
+
+    @RequestMapping("/public-photos")
+    public List<Photo> showPublicPhotos (HttpSession session, String userName) throws Exception {
+        User user = users.findFirstByName(userName);
+        List<Photo> publicPhotos = photos.findBySender(user).stream().filter(photo -> photo.isPublicPhoto() == true)
+                .collect(Collectors.toList());
+        return publicPhotos;
     }
 }
