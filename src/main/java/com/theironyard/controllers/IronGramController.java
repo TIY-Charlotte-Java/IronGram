@@ -78,7 +78,9 @@ public class IronGramController {
             HttpSession session,
             HttpServletResponse response,
             String receiver,
-            MultipartFile photo
+            MultipartFile photo,
+            int time,
+            boolean publicPhoto
     ) throws Exception {
         String username = (String) session.getAttribute("username");
 
@@ -100,11 +102,14 @@ public class IronGramController {
         File photoFile = File.createTempFile("photo", photo.getOriginalFilename(), new File("build/resources/main/static"));
         FileOutputStream fos = new FileOutputStream(photoFile);
         fos.write(photo.getBytes());
+        photoFile.deleteOnExit();
 
         Photo p = new Photo();
         p.setSender(senderUser);
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
+        p.setTime(time);
+        p.setPublicPhoto(publicPhoto);
         photos.save(p);
 
         response.sendRedirect("/");
