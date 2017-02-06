@@ -21,6 +21,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RestController
 public class IronGramController {
@@ -43,6 +45,7 @@ public class IronGramController {
     }
 
     @RequestMapping(path = "/login", method = RequestMethod.POST)
+    //the username and pasword corresponds to the html
     public User login(String username, String password, HttpSession session, HttpServletResponse response) throws Exception {
         User user = users.findFirstByName(username);
 
@@ -53,6 +56,7 @@ public class IronGramController {
             throw new Exception("Wrong password");
         }
 
+        //creates the session attribute and assigns it to username - hasmap
         session.setAttribute("username", username);
         response.sendRedirect("/");
         return user;
@@ -75,7 +79,7 @@ public class IronGramController {
     public Photo upload(
             HttpSession session,
             HttpServletResponse response,
-            String receiver, int seconds,
+            String receiver, int seconds, boolean publicPhoto,
             MultipartFile photo // parameters for uploading the pictures
     ) throws Exception {
         String username = (String) session.getAttribute("username");
@@ -105,9 +109,9 @@ public class IronGramController {
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
         p.setTimer(seconds);
+        p.setAccess(publicPhoto);
         photos.save(p);
         photoFile.deleteOnExit();//deleted when the virtual machine terminates
-
 
         response.sendRedirect("/");
 
@@ -117,6 +121,7 @@ public class IronGramController {
 
     @RequestMapping("/photos")
     public List<Photo> showPhotos(HttpSession session) throws Exception {// session is passed as parameter
+        //the attribute of the session was retrieved from login and is now picked up
         String username = (String) session.getAttribute("username"); // save the user name from the session
         if (username == null) {// if no username then throw exception
             throw new Exception("Not logged in.");
@@ -141,4 +146,6 @@ public class IronGramController {
         }).start();
         return photo;
     }
+
+
 }

@@ -21,6 +21,10 @@ public class Photo {
     @Column(nullable = false)
     int timer;
 
+    @Column(nullable = false)
+    boolean access;
+
+
     //add a column for add how many timer they want the photo to exist
 
     public Photo() {
@@ -31,6 +35,14 @@ public class Photo {
         this.recipient = recipient;
         this.filename = filename;
         this.timer = timer;
+    }
+
+    public Photo(User sender, User recipient, String filename, int timer, boolean access) {
+        this.sender = sender;
+        this.recipient = recipient;
+        this.filename = filename;
+        this.timer = timer;
+        this.access = access;
     }
 
     public int getId() {
@@ -71,5 +83,13 @@ public class Photo {
 
     public void setTimer(int timer) {
         this.timer = timer;
+    }
+
+    public boolean isAccess() {
+        return access;
+    }
+
+    public void setAccess(boolean access) {
+        this.access = access;
     }
 }
