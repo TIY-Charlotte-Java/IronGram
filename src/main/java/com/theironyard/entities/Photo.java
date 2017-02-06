@@ -18,9 +18,11 @@ public class Photo {
     @Column(nullable = false)
     String filename;
 
+    //keep track of time
     @Column(nullable = false)
     int timer;
 
+    // creating columns for public access
     @Column(nullable = false)
     boolean access;
 

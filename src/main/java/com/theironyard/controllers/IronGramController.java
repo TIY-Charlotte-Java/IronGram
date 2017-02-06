@@ -21,8 +21,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+
 
 @RestController
 public class IronGramController {
@@ -126,25 +125,25 @@ public class IronGramController {
         if (username == null) {// if no username then throw exception
             throw new Exception("Not logged in.");
         }
-        User user = users.findFirstByName(username); // finds a user
-        List<Photo> photo = photos.findByRecipient(user); // finds a photo by the recipient
+        User user = users.findFirstByName(username); // go and find a user first by name
+        List<Photo> photo = photos.findByRecipient(user); // finds a photo by the user from the list
 
-        Photo newphoto = photos.findFirstPhotoByRecipient(user);
-        final int millSec = 1000; // assignment for milloseconds
+        Photo newphoto = photos.findFirstPhotoByRecipient(user);// find the first photo
+        final int millSec = 1000; // assignment for milliseconds
         int seconds = newphoto.getTimer() * millSec; // convert users time into milliseconds
 
         new Thread(() -> { // creates a thread
-            while (true) {
+            while (true) { // while its true
                 try {
                     Thread.sleep(seconds); // sleeps the thread after a given time
-                    photos.delete(photo); // deletes the photo from the file
+                    photos.delete(newphoto); // deletes the photo from the list
                     return;
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
         }).start();
-        return photo;
+        return photo; // return the photo
     }
 
 
