@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+
 @RestController
 public class IronGramController {
     @Autowired
@@ -43,18 +44,18 @@ public class IronGramController {
     }
 
     @RequestMapping(path = "/login", method = RequestMethod.POST)
+    //the username and pasword corresponds to the html
     public User login(String username, String password, HttpSession session, HttpServletResponse response) throws Exception {
         User user = users.findFirstByName(username);
 
         if (user == null) {
             user = new User(username, PasswordStorage.createHash(password));
             users.save(user);
-        }
-
-        else if (!PasswordStorage.verifyPassword(password, user.getPassword())) {
+        } else if (!PasswordStorage.verifyPassword(password, user.getPassword())) {
             throw new Exception("Wrong password");
         }
 
+        //creates the session attribute and assigns it to username - hasmap
         session.setAttribute("username", username);
         response.sendRedirect("/");
         return user;
@@ -77,16 +78,16 @@ public class IronGramController {
     public Photo upload(
             HttpSession session,
             HttpServletResponse response,
-            String receiver,
-            MultipartFile photo
+            String receiver, int seconds, boolean publicPhoto,
+            MultipartFile photo // parameters for uploading the pictures
     ) throws Exception {
         String username = (String) session.getAttribute("username");
 
-        if (username == null) {
+        if (username == null) { // user name is null then through that the person is not logged in
             throw new Exception("Not logged in.");
         }
 
-        User senderUser = users.findFirstByName(username);
+        User senderUser = users.findFirstByName(username); //sender is assigned by sql method
         User receiverUser = users.findFirstByName(receiver);
 
         if (receiverUser == null) {
@@ -101,25 +102,49 @@ public class IronGramController {
         FileOutputStream fos = new FileOutputStream(photoFile);
         fos.write(photo.getBytes());
 
+        //creates a new photo and sets the parameters
         Photo p = new Photo();
         p.setSender(senderUser);
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
+        p.setTimer(seconds);
+        p.setAccess(publicPhoto);
         photos.save(p);
+        photoFile.deleteOnExit();//deleted when the virtual machine terminates
 
         response.sendRedirect("/");
 
         return p;
     }
 
+
     @RequestMapping("/photos")
-    public List<Photo> showPhotos(HttpSession session) throws Exception {
-        String username = (String) session.getAttribute("username");
-        if (username == null) {
+    public List<Photo> showPhotos(HttpSession session) throws Exception {// session is passed as parameter
+        //the attribute of the session was retrieved from login and is now picked up
+        String username = (String) session.getAttribute("username"); // save the user name from the session
+        if (username == null) {// if no username then throw exception
             throw new Exception("Not logged in.");
         }
+        User user = users.findFirstByName(username); // go and find a user first by name
+        List<Photo> photo = photos.findByRecipient(user); // finds a photo by the user from the list
 
-        User user = users.findFirstByName(username);
-        return photos.findByRecipient(user);
+        Photo newphoto = photos.findFirstPhotoByRecipient(user);// find the first photo
+        final int millSec = 1000; // assignment for milliseconds
+        int seconds = newphoto.getTimer() * millSec; // convert users time into milliseconds
+
+        new Thread(() -> { // creates a thread
+            while (true) { // while its true
+                try {
+                    Thread.sleep(seconds); // sleeps the thread after a given time
+                    photos.delete(newphoto); // deletes the photo from the list
+                    return;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+        return photo; // return the photo
     }
+
+
 }
