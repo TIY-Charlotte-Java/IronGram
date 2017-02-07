@@ -14,11 +14,18 @@
 <form action="/upload" method="post" enctype="multipart/form-data" id="upload" hidden>
     <input type="text" placeholder="Receiver name" name="receiver"/>
     <input type="file" name="photo"/>
+    <input type="text" placeholder="View time" name="time"/>
+    <input type="checkbox" name="publicPhoto" checked /> <label>Public</label>
     <button type="submit">Upload</button>
 </form>
 
 <div id="photos"></div>
 
+<form action="/public-photos" method="get" id="showPublicPhotos" >
+    <span>Enter a user name to see their public photos!</span>
+    <input type="text" placeholder="User name" name="userName"/>
+    <button type="submit">Look 'em up</button>
+</form>
 
 <script src="jquery-3.1.1.js"></script>
 <script src="main.js"></script>

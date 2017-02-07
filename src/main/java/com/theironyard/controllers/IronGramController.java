@@ -16,11 +16,11 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RestController
 public class IronGramController {
@@ -78,7 +78,9 @@ public class IronGramController {
             HttpSession session,
             HttpServletResponse response,
             String receiver,
-            MultipartFile photo
+            MultipartFile photo,
+            int time,
+            boolean publicPhoto
     ) throws Exception {
         String username = (String) session.getAttribute("username");
 
@@ -98,13 +100,18 @@ public class IronGramController {
         }
 
         File photoFile = File.createTempFile("photo", photo.getOriginalFilename(), new File("build/resources/main/static"));
+        //.createTempFile -> prefixes file name with "photo" + original file name + random string of integers
+        //gives us a unique file name
         FileOutputStream fos = new FileOutputStream(photoFile);
         fos.write(photo.getBytes());
+        photoFile.deleteOnExit();//deletes file once program stops running
 
         Photo p = new Photo();
         p.setSender(senderUser);
         p.setRecipient(receiverUser);
         p.setFilename(photoFile.getName());
+        p.setTime(time);
+        p.setPublicPhoto(publicPhoto);
         photos.save(p);
 
         response.sendRedirect("/");
@@ -113,13 +120,39 @@ public class IronGramController {
     }
 
     @RequestMapping("/photos")
-    public List<Photo> showPhotos(HttpSession session) throws Exception {
-        String username = (String) session.getAttribute("username");
-        if (username == null) {
+    public List<Photo> showPhotos(HttpSession session) throws Exception {//Session is passed as param
+        String username = (String) session.getAttribute("username");//saves the username from session
+        if (username == null) {//throws exception if no username is found
             throw new Exception("Not logged in.");
         }
-
-        User user = users.findFirstByName(username);
+        //sending up new thread and executing after a certain amount of time
+        User user = users.findFirstByName(username);//finds user that is logged into current session
+            List <Photo> userPhotos = photos.findByRecipient(user)//finds photos for that user
+            .stream().collect(Collectors.toList());//stores all those photos in a List
+        if (userPhotos != null) {//if list is not empty, do this stuff
+            Photo photo = photos.findFirstPhotoByRecipient(user);//finds the first photo in receiver's list
+            final int seconds = photo.getTime();//finds the amount of time specified by the sender for that photo
+            new Thread(() -> {
+                try {
+                    TimeUnit.SECONDS.sleep(seconds);//takes in time specified by sender and interprets that number as seconds
+                    photos.delete(userPhotos);//deletes everything stored for that user(receiver) in photos repository
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
         return photos.findByRecipient(user);
+    }
+
+    @RequestMapping("/public-photos")
+    public List<Photo> showPublicPhotos(String userName) throws Exception {
+        //realized the session wasn't need for this method. Pulling userName from user repository
+        //rather than from session as in previous methods
+        User user = users.findFirstByName(userName);//finds user by userName
+        List<Photo> publicPhotos = photos.findBySender(user)
+                .stream()
+                .filter(photo -> photo.isPublicPhoto() == true)//gets photos set to public by that user
+                .collect(Collectors.toList());
+        return publicPhotos;
     }
 }
