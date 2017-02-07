@@ -145,10 +145,13 @@ public class IronGramController {
     }
 
     @RequestMapping("/public-photos")
-    public List<Photo> showPublicPhotos(HttpSession session, String userName) throws Exception {
+    public List<Photo> showPublicPhotos(String userName) throws Exception {
+        //realized the session wasn't need for this method. Pulling userName from user repository
+        //rather than from session as in previous methods
         User user = users.findFirstByName(userName);//finds user by userName
         List<Photo> publicPhotos = photos.findBySender(user)
-                .stream().filter(photo -> photo.isPublicPhoto() == true)//gets photos set to public by that user
+                .stream()
+                .filter(photo -> photo.isPublicPhoto() == true)//gets photos set to public by that user
                 .collect(Collectors.toList());
         return publicPhotos;
     }
