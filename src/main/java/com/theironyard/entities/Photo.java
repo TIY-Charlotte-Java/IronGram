@@ -18,13 +18,37 @@ public class Photo {
     @Column(nullable = false)
     String filename;
 
+    @Column
+    int time;
+
+    @Column
+    boolean publicPhoto;
+
     public Photo() {
     }
 
-    public Photo(User sender, User recipient, String filename) {
+    public Photo(User sender, User recipient, String filename, int time, boolean publicPhoto) {
         this.sender = sender;
         this.recipient = recipient;
         this.filename = filename;
+        this.time = time;
+        this.publicPhoto = publicPhoto;
+    }
+
+    public boolean isPublicPhoto() {
+        return publicPhoto;
+    }
+
+    public void setPublicPhoto(boolean publicPhoto) {
+        this.publicPhoto = publicPhoto;
+    }
+
+    public int getTime() {
+        return time;
+    }
+
+    public void setTime(int time) {
+        this.time = time;
     }
 
     public int getId() {
